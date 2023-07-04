@@ -71,6 +71,7 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        self.boosted_speed = 20 #ブースト時の速度
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -89,8 +90,13 @@ class Bird(pg.sprite.Sprite):
         """
         sum_mv = [0, 0]
         for k, mv in __class__.delta.items():
-            if key_lst[k]:
-                self.rect.move_ip(+self.speed*mv[0], +self.speed*mv[1])
+            if key_lst[k] and key_lst[pg.K_LSHIFT]:
+                #if key_lst[pg.K_LSHIFT]: #左shiftキーを押された場合、速度ブーストを適用する
+                self.rect.move_ip(self.boosted_speed * mv[0], self.boosted_speed * mv[1])
+                sum_mv[0] += mv[0]
+                sum_mv[1] += mv[1]
+            elif key_lst[k]:
+                self.rect.move_ip(self.speed * mv[0], self.speed * mv[1])
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
         if check_bound(self.rect) != (True, True):
@@ -104,6 +110,15 @@ class Bird(pg.sprite.Sprite):
     
     def get_direction(self) -> tuple[int, int]:
         return self.dire
+
+    def get_speed(self) -> int:
+        if self.imgs == (0, 0):  # 方向が停止している場合は0を返す
+            return 0
+        elif self.dire == (1, 0):  # 右方向の場合はブースト時の速度を返す
+            return self.boosted_speed
+        else:  # それ以外の方向の場合は通常の速度を返す
+            return self.speed    
+
     
 
 class Bomb(pg.sprite.Sprite):
