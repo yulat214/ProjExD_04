@@ -69,10 +69,15 @@ class Bird(pg.sprite.Sprite):
         }
         self.dire = (+1, 0)
         self.image = self.imgs[self.dire]
+
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        
+        self.state = "normal"
+        self.hyper_life = 0
         self.boosted_speed = 20 #ブースト時の速度
+        
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -82,6 +87,16 @@ class Bird(pg.sprite.Sprite):
         """
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
+
+        
+
+    def change_state(self,state:str,hyper_life:int):
+        """
+        引数1 hyperモードとnormalモードを切り替える
+        引数2 hyperモードの時間 500,normal -1
+        """
+        self.state = state
+        self.hyper_life = hyper_life
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
         """
@@ -107,8 +122,17 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
+        
+
+        if self.state == "hyper":
+            self.image = pg.transform.laplacian(self.image)
+            self.hyper_life -= 1
+            
+        if self.hyper_life < 0:
+            self.change_state("normal",-1)
+
         screen.blit(self.image, self.rect)
-    
+         
     def get_direction(self) -> tuple[int, int]:
         return self.dire
 
@@ -120,7 +144,6 @@ class Bird(pg.sprite.Sprite):
         else:  # それ以外の方向の場合は通常の速度を返す
             return self.speed    
 
-    
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -216,6 +239,7 @@ class Explosion(pg.sprite.Sprite):
 
 
 class Enemy(pg.sprite.Sprite):
+    
     """
     敵機に関するクラス
     """
@@ -299,6 +323,9 @@ class Score:
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
+    
+    def score_down(self,down):#score減少関数
+        self.score -= down
 
 
 def main():
@@ -312,6 +339,9 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+
+    super_bird = pg.sprite.Group()
+    super_bird.add(Bird(3, (900, 400)))
     shields = pg.sprite.Group()
 
     tmr = 0
@@ -323,10 +353,17 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT:
+                if  score.score >= 100:#ここの数字を変動すれば発動条件が変化
+                    score.score_down(100)
+                    bird.change_state("hyper",500)
+
             if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK and len(shields) == 0:
                 if score.score >= 50:
                     shields.add(Shield(bird, 400))
                     score.score_up(-50)
+
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -345,6 +382,18 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
+
+        for bomb in pg.sprite.spritecollide(bird,bombs,True):
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                score.score_up(1)  # 1点アップ
+
+            else: 
+                bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
 
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
