@@ -13,8 +13,8 @@ HEIGHT = 900  # ゲームウィンドウの高さ
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内か画面外かを判定し，真理値タプルを返す
-    引数 obj：オブジェクト（爆弾，こうかとん，ビーム）SurfaceのRect
-    戻り値：横方向，縦方向のはみ出し判定結果（画面内：True／画面外：False）
+    引数 obj:オブジェクト（爆弾,こうかとん,ビーム）SurfaceのRect
+    戻り値:横方向,縦方向のはみ出し判定結果（画面内:True/画面外:False）
     """
     yoko, tate = True, True
     if obj.left < 0 or WIDTH < obj.right:  # 横方向のはみ出し判定
@@ -26,10 +26,10 @@ def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
 
 def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     """
-    orgから見て，dstがどこにあるかを計算し，方向ベクトルをタプルで返す
-    引数1 org：爆弾SurfaceのRect
-    引数2 dst：こうかとんSurfaceのRect
-    戻り値：orgから見たdstの方向ベクトルを表すタプル
+    orgから見て,dstがどこにあるかを計算し,方向ベクトルをタプルで返す
+    引数1 org:爆弾SurfaceのRect
+    引数2 dst:こうかとんSurfaceのRect
+    戻り値:orgから見たdstの方向ベクトルを表すタプル
     """
     x_diff, y_diff = dst.centerx-org.centerx, dst.centery-org.centery
     norm = math.sqrt(x_diff**2+y_diff**2)
@@ -50,8 +50,8 @@ class Bird(pg.sprite.Sprite):
     def __init__(self, num: int, xy: tuple[int, int]):
         """
         こうかとん画像Surfaceを生成する
-        引数1 num：こうかとん画像ファイル名の番号
-        引数2 xy：こうかとん画像の位置座標タプル
+        引数1 num:こうかとん画像ファイル名の番号
+        引数2 xy:こうかとん画像の位置座標タプル
         """
         super().__init__()
         img0 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
@@ -75,8 +75,8 @@ class Bird(pg.sprite.Sprite):
     def change_img(self, num: int, screen: pg.Surface):
         """
         こうかとん画像を切り替え，画面に転送する
-        引数1 num：こうかとん画像ファイル名の番号
-        引数2 screen：画面Surface
+        引数1 num:こうかとん画像ファイル名の番号
+        引数2 screen:画面Surface
         """
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
@@ -84,8 +84,8 @@ class Bird(pg.sprite.Sprite):
     def update(self, key_lst: list[bool], screen: pg.Surface):
         """
         押下キーに応じてこうかとんを移動させる
-        引数1 key_lst：押下キーの真理値リスト
-        引数2 screen：画面Surface
+        引数1 key_lst:押下キーの真理値リスト
+        引数2 screen:画面Surface
         """
         sum_mv = [0, 0]
         for k, mv in __class__.delta.items():
@@ -115,8 +115,8 @@ class Bomb(pg.sprite.Sprite):
     def __init__(self, emy: "Enemy", bird: Bird):
         """
         爆弾円Surfaceを生成する
-        引数1 emy：爆弾を投下する敵機
-        引数2 bird：攻撃対象のこうかとん
+        引数1 emy:爆弾を投下する敵機
+        引数2 bird:攻撃対象のこうかとん
         """
         super().__init__()
         rad = random.randint(10, 50)  # 爆弾円の半径：10以上50以下の乱数
@@ -134,7 +134,7 @@ class Bomb(pg.sprite.Sprite):
     def update(self):
         """
         爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
-        引数 screen：画面Surface
+        引数 screen:画面Surface
         """
         self.rect.move_ip(+self.speed*self.vx, +self.speed*self.vy)
         if check_bound(self.rect) != (True, True):
@@ -145,17 +145,20 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird):
+    def __init__(self, bird: Bird, deg=0):
         """
         ビーム画像Surfaceを生成する
-        引数 bird：ビームを放つこうかとん
+        引数 bird:ビームを放つこうかとん
+            deg: 回転角度
         """
         super().__init__()
         self.vx, self.vy = bird.get_direction()
         angle = math.degrees(math.atan2(-self.vy, self.vx))
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), angle, 2.0)
-        self.vx = math.cos(math.radians(angle))
-        self.vy = -math.sin(math.radians(angle))
+        # こうかとんの向きに合わせての角度 + ビームの角度
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/beam.png"), angle+deg, 2.0)
+        self.vx = math.cos(math.radians(angle+deg))
+        self.vy = -math.sin(math.radians(angle+deg))
+        
         self.rect = self.image.get_rect()
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
@@ -164,12 +167,31 @@ class Beam(pg.sprite.Sprite):
     def update(self):
         """
         ビームを速度ベクトルself.vx, self.vyに基づき移動させる
-        引数 screen：画面Surface
+        引数 screen:画面Surface
         """
         self.rect.move_ip(+self.speed*self.vx, +self.speed*self.vy)
         if check_bound(self.rect) != (True, True):
             self.kill()
 
+class NeoBeam(pg.sprite.Sprite):
+    """
+    多方向に多数ビームを出せるようにするクラス
+    """
+    def __init__(self, bird :Bird, num):
+        """
+        Args:
+            bird (Bird): ビームを放つこうかとん_
+            num (_type_): ビームの数
+        """
+        self.num = num
+        self.bird = bird
+        self.beam_lst = []
+        
+    def gen_beams(self):
+        # num個ビームを作る 0~100度を割って50度引く
+        for i in range(self.num):
+            self.beam_lst.append(Beam(self.bird, (100*i/self.num+1)-50))
+        return self.beam_lst
 
 class Explosion(pg.sprite.Sprite):
     """
@@ -178,8 +200,8 @@ class Explosion(pg.sprite.Sprite):
     def __init__(self, obj: "Bomb|Enemy", life: int):
         """
         爆弾が爆発するエフェクトを生成する
-        引数1 obj：爆発するBombまたは敵機インスタンス
-        引数2 life：爆発時間
+        引数1 obj:爆発するBombまたは敵機インスタンス
+        引数2 life:爆発時間
         """
         super().__init__()
         img = pg.image.load("ex04/fig/explosion.gif")
@@ -218,8 +240,8 @@ class Enemy(pg.sprite.Sprite):
     def update(self):
         """
         敵機を速度ベクトルself.vyに基づき移動（降下）させる
-        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
-        引数 screen：画面Surface
+        ランダムに決めた停止位置_boundまで降下したら,_stateを停止状態に変更する
+        引数 screen:画面Surface
         """
         if self.rect.centery > self.bound:
             self.vy = 0
@@ -230,8 +252,8 @@ class Enemy(pg.sprite.Sprite):
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
-    爆弾：1点
-    敵機：10点
+    爆弾:1点
+    敵機:10点
     """
     def __init__(self):
         self.font = pg.font.Font(None, 50)
@@ -268,7 +290,9 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 0
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+            if pg.key.get_pressed()[pg.K_SPACE] and pg.key.get_pressed()[pg.K_LSHIFT]:
+                beams.add(NeoBeam(bird, 5).gen_beams())
+            elif event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
         screen.blit(bg_img, [0, 0])
 
